@@ -1,0 +1,4 @@
+
+
+class DeviceClientBase(object):
+    pass
