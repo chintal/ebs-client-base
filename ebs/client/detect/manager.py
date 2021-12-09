@@ -20,62 +20,73 @@
 
 
 import importlib
-
 from tendril.utils.versions import get_namespace_package_names
-from tendril.utils import log
-logger = log.get_logger(__name__, log.DEBUG)
+
+from .base import DetectorBase
 
 
-class DetectorManager(object):
-    def __init__(self, prefix):
+class DetectionManager(DetectorBase):
+    def __init__(self, prefix, *args, **kwargs):
+        super(DetectionManager, self).__init__(*args, **kwargs)
         self._prefix = prefix
-        self._schemas = {}
-        self._file_schemas = {}
-        self._docs = []
-        self._load_schemas()
-        self._validation_context = ValidationContext(self.__module__)
+        self._detectors = {}
+        self._load_modules()
+        self._load_devices()
 
-    def _load_schemas(self):
-        logger.debug("Loading schema modules from {0}".format(self._prefix))
+    def _start(self):
+        self.log.info("Starting Device Detectors")
+        for name, detector in self._detectors.items():
+            detector.start()
+
+    def _stop(self):
+        self.log.info("Stopping Device Detectors")
+        for name, detector in self._detectors.items():
+            detector.stop()
+
+    def _load_modules(self):
+        self.log.info("Installing detection modules from {0}".format(self._prefix))
         modules = list(get_namespace_package_names(self._prefix))
         for m_name in modules:
             if m_name == __name__:
                 continue
+            if m_name == 'ebs.client.detect.heuristics':
+                continue
+            if m_name == 'ebs.client.detect.devices':
+                continue
             m = importlib.import_module(m_name)
-            m.load(self)
-        logger.debug("Done loading schema modules from {0}".format(self._prefix))
+            m.install(self)
+        self.log.info("Done installing detection modules from {0}".format(self._prefix))
 
-    def load_schema(self, name, processor, doc):
-        logger.debug("Installing schema definition {0}".format(name))
-        self._schemas[name] = processor
-        if issubclass(processor, SchemaControlledYamlFile):
-            self._file_schemas[name] = processor
-        self._docs.append((name, doc))
+    def install_detector(self, name, detector: DetectorBase):
+        self.log.info("Installing detection module '{0}' using '{1}'".format(name, detector.__class__))
+        detector.install_handler(event='connect:*', handler=self.on_connect)
+        detector.install_handler(event='disconnect:*', handler=self.on_disconnect)
+        self._detectors[name] = detector
+
+    def _load_devices(self):
+        prefix = '.'.join([self._prefix, 'devices'])
+        self.log.info("Installing device heuristics from {0}".format(prefix))
+        modules = list(get_namespace_package_names(prefix))
+        for m_name in modules:
+            m = importlib.import_module(m_name)
+            m.install(self)
+        self.log.info("Done installing device heuristics from {0}".format(prefix))
+
+    def install_device_heuristic(self, name, heuristic):
+        super(DetectionManager, self).install_device_heuristic(name, heuristic)
+        if heuristic.domain in self._detectors.keys():
+            self._detectors[heuristic.domain].install_device_heuristic(name, heuristic)
 
     def __getattr__(self, item):
         if item == '__path__':
             return None
         if item == '__len__':
-            return len(self._schemas.keys())
+            return len(self._detectors.keys())
         if item == '__all__':
-            return list(self._schemas.keys()) + \
-                   ['load_schema', 'load', 'doc_render']
-        return self._schemas[item]
-
-    def load(self, targetpath):
-        baseparser = getattr(self, 'SchemaControlledYamlFile')
-        target = baseparser(targetpath)
-        target_schema = target.schema_name
-        if target_schema not in self._file_schemas.keys():
-            # TODO Replace with a generic OptionPolicy?
-            policy = ConfigOptionPolicy(self._validation_context,
-                                        'schema.name',
-                                        self._file_schemas.keys())
-            raise SchemaNotSupportedError(policy, target_schema)
-        return getattr(self, target_schema)(targetpath)
-
-    def doc_render(self):
-        return self._docs
+            return list(self._detectors.keys()) + \
+                   ['', 'install_detector']
+        print(dir(self))
+        return self._detectors[item]
 
     def __repr__(self):
-        return "<SchemaManager>"
+        return "<DetectionManager>"
