@@ -5,7 +5,7 @@ from .core import ClientCore
 
 
 def main():
-    client = ClientCore()
+    client = ClientCore(reactor)
     reactor.callWhenRunning(client.start)
     reactor.run()
 

@@ -10,5 +10,5 @@ class HeuristicBase(object):
     def domain(self):
         return self._domain
 
-    def test(self, target):
+    def check_for_device(self, reactor, target):
         raise NotImplementedError

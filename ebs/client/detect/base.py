@@ -11,6 +11,10 @@ class DetectorBase(AsyncEngineBase):
         self._supported_devices = {}
         self._connected_devices = {}
 
+    @property
+    def reactor(self):
+        return self._parent.reactor
+
     def _start(self):
         raise NotImplementedError
 
