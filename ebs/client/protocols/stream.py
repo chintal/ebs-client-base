@@ -28,7 +28,6 @@ class VariableFrameStreamProtocol(Protocol, TwistedLoggerMixin):
         self._target = target
         self._customers = []
         self._managers = []
-        self._detect_result = None
         self.state = ProtocolState.UNLOCKED
         self._reactor = None
         self._data_queue = DeferredQueue()
@@ -40,12 +39,17 @@ class VariableFrameStreamProtocol(Protocol, TwistedLoggerMixin):
 
     @state.setter
     def state(self, value):
-        self.log.info("{} Changing State : {}".format(self._target, value))
+        self.log.debug("{target} Changing State : {state}",
+                       target=self._target, state=value)
         for manager in self._managers:
-            manager.put(value)
-        if self._detect_result and value == ProtocolState.BROKEN:
-            self._detect_result.callback(False)
+            manager(self._target, value)
         self._state = value
+
+    def register_manager(self, handler):
+        self._managers.append(handler)
+
+    def deregister_manager(self, handler):
+        self._managers.remove(handler)
 
     def _sync_timeout_handler(self):
         if self.state == ProtocolState.SYNC_WAIT:
@@ -71,8 +75,6 @@ class VariableFrameStreamProtocol(Protocol, TwistedLoggerMixin):
                 self.dispatch_frame(parsed)
                 if self.state == ProtocolState.SYNC_CHECK:
                     self.state = ProtocolState.SYNC_LOCKED
-                    if self._detect_result:
-                        self._detect_result.callback(True)
             except StreamError as e:
                 if len(data_buffer) > self._frame_max_len:
                     if self.state == ProtocolState.SYNC_CHECK:
@@ -87,13 +89,11 @@ class VariableFrameStreamProtocol(Protocol, TwistedLoggerMixin):
         for customer in self._customers:
             customer.put(parsed_frame)
 
-    def validate_device(self, reactor):
+    def initialize_connection(self, reactor):
         self.state = ProtocolState.SYNC_WAIT
         self._reactor = reactor
-        self._detect_result = Deferred()
         self._reactor.callLater(self._sync_timeout, self._sync_timeout_handler)
         self._start_framer()
-        return self._detect_result
 
     def dataReceived(self, data: bytes):
         if self.state in (ProtocolState.UNLOCKED, ProtocolState.BROKEN):
