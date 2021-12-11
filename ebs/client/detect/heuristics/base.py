@@ -1,10 +1,10 @@
 
 
-class HeuristicBase(object):
-    _domain = 'serial'
+from tendril.asynchronous.utils.logger import TwistedLoggerMixin
 
-    def __init__(self):
-        pass
+
+class HeuristicBase(TwistedLoggerMixin):
+    _domain = 'serial'
 
     @property
     def domain(self):

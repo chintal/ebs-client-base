@@ -2,7 +2,6 @@
 
 from functools import partial
 from twisted.internet.defer import Deferred
-from twisted.internet.defer import inlineCallbacks
 from twisted.internet.protocol import Protocol
 
 from twisted.internet.serialport import SerialPort
@@ -44,8 +43,8 @@ class SerialDeviceHeuristic(HeuristicBase):
         return result
 
     def check_for_device(self, reactor, target):
-        test_protocol = self._protocol()
-        test_port = SerialPort(self._protocol(), target, reactor,
+        test_protocol = self._protocol(target)
+        test_port = SerialPort(test_protocol, target, reactor,
                                baudrate=self._baud, bytesize=self._width,
                                parity=self._parity, stopbits=self._stop)
 
