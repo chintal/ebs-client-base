@@ -61,6 +61,11 @@ class SerialDeviceHeuristic(HeuristicBase):
         self._detection_handlers[target].callback(result)
         self.cleanup(target)
 
+    def _verify_device(self, target):
+        self.log.info("'{device}' found on port '{target}'",
+                      device=self._name, target=target)
+        self._dispatch_detection_result(target, True)
+
     def _state_change_handler(self, target, new_state):
         if new_state == ProtocolState.BROKEN:
             self._detection_states[target] = DetectionStates.NO_DEVICE
@@ -71,10 +76,7 @@ class SerialDeviceHeuristic(HeuristicBase):
         if self._detection_states[target] == DetectionStates.WAITING:
             if new_state == ProtocolState.SYNC_LOCKED:
                 self._detection_states[target] = DetectionStates.DETECTED
-                self.log.info("'{device}' found on port '{target}'",
-                              device=self._name, target=target)
-                self._dispatch_detection_result(target, True)
-                return
+                self._verify_device(target)
 
     def check_for_device(self, reactor, target):
         self._detection_states[target] = DetectionStates.NO_INIT
