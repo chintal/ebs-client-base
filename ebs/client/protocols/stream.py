@@ -82,6 +82,8 @@ class VariableFrameStreamProtocol(Protocol, TwistedLoggerMixin):
                     data_buffer = bytearray()
 
     def dispatch_frame(self, parsed_frame):
+        self.log.debug("{target} Dispatching frame : {frame}",
+                       target=self._target, frame=parsed_frame)
         for customer in self._customers:
             customer.put(parsed_frame)
 
