@@ -10,7 +10,7 @@ class ClientCore(TwistedLoggerMixin):
         super(ClientCore, self).__init__(*args, **kwargs)
         self._reactor = reactor
         self.log_init()
-        self._detection_manager = DetectionManager('ebs.client.detect', self)
+        self._detection_manager = DetectionManager('ebs.client.detect', 'ebs.client.devices', self)
 
     @property
     def reactor(self):

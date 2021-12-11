@@ -26,8 +26,9 @@ from .base import DetectorBase
 
 
 class DetectionManager(DetectorBase):
-    def __init__(self, prefix, *args, **kwargs):
+    def __init__(self, prefix, device_prefix, *args, **kwargs):
         super(DetectionManager, self).__init__(*args, **kwargs)
+        self._device_prefix = device_prefix
         self._prefix = prefix
         self._detectors = {}
         self._load_modules()
@@ -51,8 +52,6 @@ class DetectionManager(DetectorBase):
                 continue
             if m_name == 'ebs.client.detect.heuristics':
                 continue
-            if m_name == 'ebs.client.detect.devices':
-                continue
             m = importlib.import_module(m_name)
             m.install(self)
         self.log.info("Done installing detection modules from {0}".format(self._prefix))
@@ -64,13 +63,16 @@ class DetectionManager(DetectorBase):
         self._detectors[name] = detector
 
     def _load_devices(self):
-        prefix = '.'.join([self._prefix, 'devices'])
-        self.log.info("Installing device heuristics from {0}".format(prefix))
-        modules = list(get_namespace_package_names(prefix))
+        self.log.info("Installing device heuristics from {0}".format(self._device_prefix))
+        modules = list(get_namespace_package_names(self._device_prefix))
         for m_name in modules:
+            if m_name == 'ebs.client.devices.base':
+                continue
+            if m_name == 'ebs.client.devices.manager':
+                continue
             m = importlib.import_module(m_name)
             m.install(self)
-        self.log.info("Done installing device heuristics from {0}".format(prefix))
+        self.log.info("Done installing device heuristics from {0}".format(self._device_prefix))
 
     def install_device_heuristic(self, name, heuristic):
         super(DetectionManager, self).install_device_heuristic(name, heuristic)
