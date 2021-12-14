@@ -1,8 +1,7 @@
 
 
 from tendril.asynchronous.utils.logger import TwistedLoggerMixin
-
-from .detect.manager import DetectionManager
+from .devices.manager import DeviceManager
 
 
 class ClientCore(TwistedLoggerMixin):
@@ -10,11 +9,11 @@ class ClientCore(TwistedLoggerMixin):
         super(ClientCore, self).__init__(*args, **kwargs)
         self._reactor = reactor
         self.log_init()
-        self._detection_manager = DetectionManager('ebs.client.detect', 'ebs.client.devices', self)
+        self._device_manager = DeviceManager('ebs.client.devices', self)
 
     @property
     def reactor(self):
         return self._reactor
 
     def start(self):
-        self._detection_manager.start()
+        self._device_manager.start()

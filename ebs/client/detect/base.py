@@ -4,16 +4,12 @@ from tendril.asynchronous.utils.engines import AsyncEngineBase
 
 
 class DetectorBase(AsyncEngineBase):
-    def __init__(self, parent, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         super(DetectorBase, self).__init__(*args, **kwargs)
-        self._parent = parent
-        self._handlers = {}
+        self._handlers = {'connect': [],
+                          'disconnect': []}
         self._supported_devices = {}
-        self._connected_devices = {}
-
-    @property
-    def reactor(self):
-        return self._parent.reactor
+        self._detected_devices = {}
 
     def _start(self):
         raise NotImplementedError

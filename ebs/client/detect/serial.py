@@ -16,20 +16,27 @@ class SerialDeviceDetector(DetectorBase):
     def candidates(self):
         return [p.device for p in list_ports.comports()]
 
-    def detect_handler(self, name, device, result):
-        print(name, device, result)
+    def detect_handler(self, name, device, port, result):
+        if result:
+            self.log.info("Detected '{name}' on port '{port}'",
+                          name=name, port=port)
+            self._detected_devices[port] = device
+            self.on_connect(name, {'heuristic': device, 'port': port})
+        else:
+            self.log.debug("Device '{name}' not found on port '{port}'",
+                           name=name, port=port)
 
     @inlineCallbacks
     def search(self):
         for name, device in self._supported_devices.items():
             port_results = []
             for port in self.candidates:
-                if port in self._connected_devices.keys():
+                if port in self._detected_devices.keys():
                     continue
                 self.log.info("Searching for '{}' on port '{}'"
                               "".format(name, port))
                 result = device.check_for_device(self.reactor, port)
-                result.addCallback(partial(self.detect_handler, name, device))
+                result.addCallback(partial(self.detect_handler, name, device, port))
                 port_results.append(result)
             yield DeferredList(port_results)
 

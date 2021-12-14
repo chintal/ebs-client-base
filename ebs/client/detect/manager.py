@@ -66,9 +66,11 @@ class DetectionManager(DetectorBase):
         self.log.info("Installing device heuristics from {0}".format(self._device_prefix))
         modules = list(get_namespace_package_names(self._device_prefix))
         for m_name in modules:
-            if m_name == 'ebs.client.devices.base':
-                continue
-            if m_name == 'ebs.client.devices.manager':
+            if m_name in [
+                'ebs.client.devices.base',
+                'ebs.client.devices.manager',
+                'ebs.client.devices.serial'
+            ]:
                 continue
             m = importlib.import_module(m_name)
             m.install(self)

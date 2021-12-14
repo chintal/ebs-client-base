@@ -35,6 +35,7 @@ class Echo(Protocol):
 
 
 class SerialDeviceHeuristic(HeuristicBase):
+    _domain = 'serial'
     _name = "BaseSerial"
     _baud = 115200
     _width = EIGHTBITS
