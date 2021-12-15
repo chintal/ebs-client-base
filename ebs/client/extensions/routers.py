@@ -1,5 +1,8 @@
 
 
+from twisted.internet.defer import DeferredQueue
+from twisted.internet.defer import inlineCallbacks
+
 from .base import ExtensionBase
 
 
@@ -50,3 +53,40 @@ class PacketRouter(ExtensionBase):
         self.log.debug("Dispatching packet with identifier {identifier}",
                        identifier=identifier)
         queue.put(payload)
+
+
+class UnpackingRouter(ExtensionBase):
+    def __init__(self, unpacker, *args, **kwargs):
+        super(UnpackingRouter, self).__init__(*args, **kwargs)
+        self._unpacker = unpacker
+        self._input = DeferredQueue()
+        self._router = PacketRouter(self)
+
+    @property
+    def input(self):
+        return self._input
+
+    _delegated = [
+        'install_packet_handler',
+        'uninstall_packet_handler',
+        'route_packet',
+        'suppress_identifiers'
+    ]
+
+    def __getattr__(self, item):
+        if item in self._delegated:
+            return getattr(self._router, item)
+        else:
+            raise AttributeError("{} has no attribute {}"
+                                 "".format(self.__class__, item))
+
+    @inlineCallbacks
+    def _packet_handler(self):
+        while True:
+            packet = yield self._input.get()
+            for identifier, data in self._unpacker(packet):
+                self._router.route_packet(identifier, data)
+
+    def start(self):
+        self._packet_handler()
+
