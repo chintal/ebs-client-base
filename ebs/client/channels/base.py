@@ -13,6 +13,10 @@ class ChannelBase(TwistedLoggerMixin):
         self._queues = {}
 
     @property
+    def value(self):
+        raise NotImplementedError
+
+    @property
     def parent(self):
         return self._parent
 
