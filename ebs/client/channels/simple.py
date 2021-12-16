@@ -13,6 +13,11 @@ class SimplePersistentChannel(ChannelBase):
         super(SimplePersistentChannel, self).__init__(*args, **kwargs)
         self._queue = None
         self._value = None
+        self._value_change_handlers = []
+
+    @property
+    def identifier(self):
+        return self._identifier
 
     @property
     def value(self):
@@ -21,6 +26,15 @@ class SimplePersistentChannel(ChannelBase):
     @value.setter
     def value(self, v):
         self._value = v
+        self._value_change_hook(v)
+
+    def _value_change_hook(self, value):
+        for predicate, handler in self._value_change_handlers:
+            if predicate(value):
+                handler(self, value)
+
+    def install_value_change_handler(self, predicate, handler):
+        self._value_change_handlers.append((predicate, handler))
 
     def _processor(self, packet):
         raise NotImplementedError
@@ -33,5 +47,5 @@ class SimplePersistentChannel(ChannelBase):
 
     def bind_router(self, router):
         self._queue = DeferredQueue()
-        router.install_packet_handler(self._identifier, self._queue)
+        router.install_packet_handler(self.identifier, self._queue)
         self._packet_handler()

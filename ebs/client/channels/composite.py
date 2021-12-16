@@ -50,6 +50,10 @@ class RoutedCompositeChannel(CompositeChannelBase):
         self._router = PacketRouter(self)
         super(RoutedCompositeChannel, self).__init__(*args, **kwargs)
 
+    @property
+    def identifier(self):
+        return self._identifier
+
     def _build(self):
         raise NotImplementedError
 
@@ -69,5 +73,5 @@ class RoutedCompositeChannel(CompositeChannelBase):
 
     def bind_router(self, router):
         self._queue = DeferredQueue()
-        router.install_packet_handler(self._identifier, self._queue)
+        router.install_packet_handler(self.identifier, self._queue)
         self._packet_handler()
