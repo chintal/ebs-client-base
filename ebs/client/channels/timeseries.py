@@ -16,6 +16,7 @@ class SimpleTimeSeriesChannel(SimplePersistentChannel):
         super(SimpleTimeSeriesChannel, self).__init__(*args, **kwargs)
         self._create_wave()
         self._stability_change_handlers = []
+        self._stability_change_hook_enabled = False
 
     def _create_wave(self):
         self._wave = SignalWave(self._type, use_point_ts=True,
@@ -28,13 +29,15 @@ class SimpleTimeSeriesChannel(SimplePersistentChannel):
     @value.setter
     def value(self, v):
         _point = SignalPoint(self._type, v)
-        prev_value = self._wave.latest_point
-        if issubclass(self._type, (Number, NumericalUnitBase)):
+        if self._value_change_hook_enabled:
+            prev_value = self._wave.latest_point
+        if self._stability_change_hook_enabled:
             prev_stability = self._wave.is_stable
         self._wave.add_point(_point)
-        if prev_value != _point.value:
-            self._value_change_hook(_point)
-        if issubclass(self._type, (Number, NumericalUnitBase)):
+        if self._value_change_hook_enabled:
+            if prev_value != _point.value:
+                self._value_change_hook(_point)
+        if self._stability_change_hook_enabled:
             stability = self._wave.is_stable
             if prev_stability != stability:
                 self._stability_change_hook(stability)
@@ -49,6 +52,7 @@ class SimpleTimeSeriesChannel(SimplePersistentChannel):
                 handler(self, value)
 
     def install_stability_change_handler(self, predicate, handler):
+        self._stability_change_hook_enabled = True
         self._stability_change_handlers.append((predicate, handler))
 
     def _processor(self, packet):
