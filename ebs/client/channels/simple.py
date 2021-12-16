@@ -25,8 +25,10 @@ class SimplePersistentChannel(ChannelBase):
 
     @value.setter
     def value(self, v):
+        prev = self._value
         self._value = v
-        self._value_change_hook(v)
+        if not prev == v:
+            self._value_change_hook(v)
 
     def _value_change_hook(self, value):
         for predicate, handler in self._value_change_handlers:
