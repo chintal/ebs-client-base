@@ -75,3 +75,33 @@ class RoutedCompositeChannel(CompositeChannelBase):
         self._queue = DeferredQueue()
         router.install_packet_handler(self.identifier, self._queue)
         self._packet_handler()
+
+
+class SliceRoutedCompositeChannel(RoutedCompositeChannel):
+    def __init__(self, *args, **kwargs):
+        super(SliceRoutedCompositeChannel, self).__init__(*args, **kwargs)
+        _slices = []
+
+    def _build(self):
+        raise NotImplementedError
+
+    def install_channel(self, channel):
+        super(SliceRoutedCompositeChannel, self).install_channel(channel)
+        idx = channel.identifier
+        if not isinstance(idx, (int, slice)):
+            raise TypeError("Children of a SliceRoutedCompositeChannel must have "
+                            "identifiers which can be used for list slicing "
+                            "(int, slice). Got {} ({}).".format(idx, type(idx)))
+        self._slices.append(channel.identifier)
+        channel.bind_router(self._router)
+
+    def _processor(self, packet):
+        rv = []
+        for spec in self._slices:
+            if isinstance(spec, int):
+                rv.append((spec, packet[spec]))
+            elif isinstance(spec, tuple) and spec[0] == 'slice':
+                cspec = slice(spec[1], spec[2], spec[3])
+                rv.append((spec, packet[cspec]))
+        return rv
+

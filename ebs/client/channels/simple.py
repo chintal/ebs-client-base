@@ -18,6 +18,11 @@ class SimplePersistentChannel(ChannelBase):
 
     @property
     def identifier(self):
+        if isinstance(self._identifier, slice):
+            return ('slice',
+                    self._identifier.start,
+                    self._identifier.stop,
+                    self._identifier.step)
         return self._identifier
 
     @property
