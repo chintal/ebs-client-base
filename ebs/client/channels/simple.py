@@ -8,6 +8,7 @@ from ebs.client.channels.base import ChannelBase
 class SimplePersistentChannel(ChannelBase):
     _name = "SimplePersistentChannel"
     _identifier = None
+    _type = None
 
     def __init__(self, *args, **kwargs):
         super(SimplePersistentChannel, self).__init__(*args, **kwargs)
@@ -29,11 +30,10 @@ class SimplePersistentChannel(ChannelBase):
     def value(self):
         return self._value
 
-    def _value_setter(self, v):
-        self._value = v
-
     @value.setter
     def value(self, v):
+        if self._type and not isinstance(v, self._type):
+            v = self._type(v)
         if self._value_change_hook_enabled:
             prev = self._value
         self._value = v

@@ -79,21 +79,28 @@ class RoutedCompositeChannel(CompositeChannelBase):
 
 class SliceRoutedCompositeChannel(RoutedCompositeChannel):
     def __init__(self, *args, **kwargs):
+        self._slices = []
         super(SliceRoutedCompositeChannel, self).__init__(*args, **kwargs)
-        _slices = []
 
     def _build(self):
         raise NotImplementedError
 
+    def _validate_idx(self, idx):
+        if isinstance(idx, int):
+            return True
+        if isinstance(idx, tuple):
+            if idx[0] == 'slice':
+                return True
+        return False
+
     def install_channel(self, channel):
-        super(SliceRoutedCompositeChannel, self).install_channel(channel)
         idx = channel.identifier
-        if not isinstance(idx, (int, slice)):
+        if not self._validate_idx(idx):
             raise TypeError("Children of a SliceRoutedCompositeChannel must have "
                             "identifiers which can be used for list slicing "
                             "(int, slice). Got {} ({}).".format(idx, type(idx)))
-        self._slices.append(channel.identifier)
-        channel.bind_router(self._router)
+        self._slices.append(idx)
+        super(SliceRoutedCompositeChannel, self).install_channel(channel)
 
     def _processor(self, packet):
         rv = []
@@ -104,4 +111,3 @@ class SliceRoutedCompositeChannel(RoutedCompositeChannel):
                 cspec = slice(spec[1], spec[2], spec[3])
                 rv.append((spec, packet[cspec]))
         return rv
-

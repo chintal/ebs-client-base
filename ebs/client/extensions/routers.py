@@ -89,4 +89,3 @@ class UnpackingRouter(ExtensionBase):
 
     def start(self):
         self._packet_handler()
-
