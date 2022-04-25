@@ -6,6 +6,8 @@ _requires = [
     'setuptools-scm',
     'tendril-utils-core',
     'tendril-async-utils-core',
+    'pyserial',
+    'construct',
 ]
 
 setuptools.setup(
